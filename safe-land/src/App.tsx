@@ -32,8 +32,6 @@ function App() {
         },
       })
 
-
-
       if (!response_riskValues.ok) {
         throw new Error(`HTTP error! status: ${response_riskValues.status}`)
       }
@@ -58,6 +56,7 @@ function App() {
     try {
       const data = await fetchRiskData(location)
       setRiskData(data)
+      setRiskDescription(null)
       const response_summary = await fetch(`http://localhost:3001/api/risk/summarize?fr=${encodeURIComponent(data.floodRisk)}&lr=${encodeURIComponent(data.landslideRisk)}&location=${encodeURIComponent(location)}`, {
         method: 'GET',
         headers: {
@@ -98,10 +97,10 @@ function App() {
   }
 
   const getRiskColor = (value: number): string => {
-    if (value < 1.5) return '#4ade80' // green
-    if (value < 3) return '#facc15' // yellow
-    if (value < 4) return '#fb923c' // orange
-    return '#f87171' // red
+    if (value < 1.5) return '#38a169' // forest green
+    if (value < 3) return '#d69e2e' // warm amber
+    if (value < 4) return '#c05621' // warm orange-brown
+    return '#c53030' // deep red
   }
 
   return (

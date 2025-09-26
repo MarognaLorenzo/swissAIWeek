@@ -3,9 +3,10 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light;
-  color: #213547;
-  background-color: #f8fafc;
+  /* Updated color scheme for elegance and quietness */
+  color-scheme: light dark;
+  color: #2d3748;
+  background-color: #f7fafc;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -22,7 +23,7 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f8fafc;
+  background: #f7fafc;
 }
 
 #root {
@@ -45,20 +46,20 @@ button {
   outline: none;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar with navy theme */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #edf2f7;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: #4a5568;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+  background: #2d3748;
 }
