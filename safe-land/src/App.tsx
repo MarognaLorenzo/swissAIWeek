@@ -4,52 +4,46 @@ import './App.css'
 interface RiskData {
   floodRisk: number;
   landslideRisk: number;
+}
+
+interface Description {
   description: string;
 }
 
 function App() {
+  const [selectedLocation, setSelectedLocation] = useState('')
   const [location, setLocation] = useState('')
   const [riskData, setRiskData] = useState<RiskData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [riskDescription, setRiskDescription] = useState<Description | null> (null)
 
-  // Mock function to simulate backend API call
+  // API function to fetch risk data from backend
   const fetchRiskData = async (locationQuery: string): Promise<RiskData> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    setSelectedLocation(locationQuery)
+    setLocation('')
     
-    // Mock data based on location - in real app, this would be an actual API call
-    const mockResponses: Record<string, RiskData> = {
-      'zurich': {
-        floodRisk: 3.2,
-        landslideRisk: 1.8,
-        description: 'Zurich has moderate flood risk due to proximity to Lake Zurich and the Limmat River. Landslide risk is low due to stable urban terrain.'
-      },
-      'bern': {
-        floodRisk: 2.1,
-        landslideRisk: 2.5,
-        description: 'Bern shows low to moderate flood risk from the Aare River. Moderate landslide risk exists in surrounding hillside areas.'
-      },
-      'geneva': {
-        floodRisk: 4.1,
-        landslideRisk: 1.2,
-        description: 'Geneva faces higher flood risk due to Lake Geneva and the Rhône River. Landslide risk is minimal in the urban center.'
-      },
-      'basel': {
-        floodRisk: 3.8,
-        landslideRisk: 1.5,
-        description: 'Basel has elevated flood risk from the Rhine River, especially during heavy rainfall periods. Landslide risk remains low.'
+    try {
+
+      const response_riskValues = await fetch(`http://localhost:3001/api/risk/assessment?location=${encodeURIComponent(locationQuery)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+
+
+      if (!response_riskValues.ok) {
+        throw new Error(`HTTP error! status: ${response_riskValues.status}`)
       }
-    }
 
-    const key = locationQuery.toLowerCase()
-    const response = mockResponses[key] || {
-      floodRisk: Math.random() * 5,
-      landslideRisk: Math.random() * 5,
-      description: `Risk assessment for ${locationQuery}: Based on geographical analysis, this location shows variable risk levels. Consider local topography and water proximity for detailed evaluation.`
+      const risk_values = await response_riskValues.json()
+      return risk_values
+    } catch (error) {
+      console.error('Error fetching risk_values:', error)
+      throw new Error('Failed to fetch risk_values from server')
     }
-
-    return response
   }
 
   const handleSearch = async () => {
@@ -64,8 +58,27 @@ function App() {
     try {
       const data = await fetchRiskData(location)
       setRiskData(data)
+      const response_summary = await fetch(`http://localhost:3001/api/risk/summarize?fr=${encodeURIComponent(data.floodRisk)}&lr=${encodeURIComponent(data.landslideRisk)}&location=${encodeURIComponent(location)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response_summary.ok) {
+        throw new Error(`HTTP error! status: ${response_summary.status}`)
+      }
+
+      const description = await response_summary.json()
+      setRiskDescription(description)
+
     } catch (err) {
-      setError('Failed to fetch risk data. Please try again.')
+      console.error('API Error:', err)
+      if (err instanceof Error) {
+        setError(`Error: ${err.message}. Make sure the backend server is running on port 3001.`)
+      } else {
+        setError('Failed to fetch risk data. Please make sure the backend server is running.')
+      }
     } finally {
       setLoading(false)
     }
@@ -126,7 +139,7 @@ function App() {
 
       {riskData && (
         <div className="results-section">
-          <h2>Risk Assessment for {location}</h2>
+          <h2>Risk Assessment for {selectedLocation}</h2>
           
           <div className="risk-cards">
             <div className="risk-card">
@@ -159,13 +172,14 @@ function App() {
               </div>
             </div>
           </div>
-
-          <div className="description-section">
-            <h3>Assessment Details</h3>
-            <p className="description-text">
-              {riskData.description}
-            </p>
-          </div>
+          {riskDescription && (
+            <div className="description-section">
+              <h3>Assessment Details</h3>
+              <p className="description-text">
+                {riskDescription.description}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
