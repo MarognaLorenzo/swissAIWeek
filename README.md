@@ -1,0 +1,1 @@
+## Swiss AI Weeks
