@@ -14,7 +14,7 @@ export const getRiskAssessment = async (req, res) => {
     }
     
       // Generate dynamic risk assessment for unknown locations
-    assessment = generateDynamicAssessment(location);
+    const assessment = generateDynamicAssessment(location);
 
     // Add metadata
     const response = {
