@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import MapComponent from './MapComponent'
 
 interface RiskData {
   floodRisk: number;
@@ -43,9 +44,16 @@ interface UserProfile {
   hikeDifficulty: 'easy' | 'moderate' | 'difficult' | 'very-difficult';
 }
 
+interface MapCoordinates {
+  lat: number;
+  lng: number;
+}
+
 function App() {
   const [selectedLocation, setSelectedLocation] = useState('')
   const [location, setLocation] = useState('')
+  const [mapCoordinates, setMapCoordinates] = useState<MapCoordinates | null>(null)
+  const [locationAutoFilled, setLocationAutoFilled] = useState(false)
   const [riskData, setRiskData] = useState<RiskData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,12 +64,13 @@ function App() {
   
   // Collapsible sections state
   const [sectionsOpen, setSectionsOpen] = useState({
-    riskAssessment: true,
-    weatherAnalysis: false,
+    riskAssessment: false,
+    weatherAnalysis: true,
     recommendations: false,
     assessmentDetails: false,
     chat: false,
-    userProfile: false
+    userProfile: false,
+    mapSelection: false
   })
 
   // Chat state
@@ -132,7 +141,12 @@ function App() {
       const description = await response_summary.json()
       setRiskDescription(description)
 
-      const response_weather = await fetch(`http://localhost:3001/api/risk/weather?location=${encodeURIComponent(location)}`, {
+      // Use coordinates if available from map selection, otherwise use location name
+      const weatherQuery = mapCoordinates 
+        ? `${mapCoordinates.lat},${mapCoordinates.lng}` 
+        : location
+      
+      const response_weather = await fetch(`http://localhost:3001/api/risk/weather?location=${encodeURIComponent(weatherQuery)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -146,8 +160,12 @@ function App() {
       const weath = await response_weather.json()
       setWeather(weath.description)
 
-      // Fetch recommendations based on weather and risk data
-      const response_recommendations = await fetch(`http://localhost:3001/api/risk/recommendations?location=${encodeURIComponent(location)}&floodRisk=${encodeURIComponent(data.floodRisk)}&landslideRisk=${encodeURIComponent(data.landslideRisk)}`, {
+      // Fetch recommendations based on weather and risk data - use same query format as weather
+      const recommendationsQuery = mapCoordinates 
+        ? `${mapCoordinates.lat},${mapCoordinates.lng}` 
+        : location
+        
+      const response_recommendations = await fetch(`http://localhost:3001/api/risk/recommendations?location=${encodeURIComponent(recommendationsQuery)}&floodRisk=${encodeURIComponent(data.floodRisk)}&landslideRisk=${encodeURIComponent(data.landslideRisk)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,6 +205,36 @@ function App() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch()
+    }
+  }
+
+  const handleMapClick = async (lat: number, lng: number) => {
+    setMapCoordinates({ lat, lng })
+    
+    // Make a request to get the location name from the dedicated endpoint (no LLM involved)
+    try {
+      const coordinateQuery = `${lat},${lng}`
+      const response = await fetch(`http://localhost:3001/api/risk/location-name?location=${encodeURIComponent(coordinateQuery)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const locationData = await response.json()
+        if (locationData.location && locationData.location.name) {
+          // Populate the search bar with the actual location name
+          setLocation(locationData.location.name)
+          setLocationAutoFilled(true)
+          
+          // Remove auto-fill highlight after 3 seconds
+          setTimeout(() => setLocationAutoFilled(false), 3000)
+        }
+      }
+    } catch (error) {
+      console.log('Could not fetch location name for coordinates:', error)
+      // Don't show error to user, just continue with coordinates
     }
   }
 
@@ -239,13 +287,18 @@ function App() {
     setChatLoading(true)
 
     try {
+      // Use coordinates if available from map selection, otherwise use selected location name
+      const locationForChat = mapCoordinates 
+        ? `${mapCoordinates.lat},${mapCoordinates.lng} (${selectedLocation})` 
+        : selectedLocation
+        
       const response = await fetch('http://localhost:3001/api/risk/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          location: selectedLocation,
+          location: locationForChat,
           question: currentQuestion,
           floodRisk: riskData.floodRisk,
           landslideRisk: riskData.landslideRisk,
@@ -335,10 +388,16 @@ function App() {
           <input
             type="text"
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => {
+              setLocation(e.target.value)
+              // Clear auto-fill state when user manually types
+              if (locationAutoFilled) {
+                setLocationAutoFilled(false)
+              }
+            }}
             onKeyPress={handleKeyPress}
             placeholder="Enter location (e.g., Zermatt, Interlaken, Grindelwald...)"
-            className="search-input"
+            className={`search-input ${locationAutoFilled ? 'auto-filled' : ''}`}
           />
           <button 
             onClick={handleSearch}
@@ -354,6 +413,51 @@ function App() {
             {error}
           </div>
         )}
+      </div>
+
+      {/* Map Selection Section */}
+      <div className="collapsible-section">
+        <button 
+          className="section-header"
+          onClick={() => toggleSection('mapSelection')}
+        >
+          <span className="section-title">
+            🗺️ Map Selection
+          </span>
+          <span className={`chevron ${sectionsOpen.mapSelection ? 'open' : ''}`}>
+            ▼
+          </span>
+        </button>
+        <div className={`section-content ${sectionsOpen.mapSelection ? 'open' : ''}`}>
+          <div className="map-container">
+            <p>🎯 <strong>Pro tip:</strong> Click on the map to select precise coordinates for more accurate weather data and recommendations!</p>
+            <MapComponent 
+              onLocationSelect={handleMapClick}
+              selectedLocation={mapCoordinates}
+            />
+            
+            {/* Coordinates display */}
+            {mapCoordinates && (
+              <div className="coordinates-display">
+                <h4>📍 Selected Location:</h4>
+                <div className="coordinate-info">
+                  <span><strong>Latitude:</strong> {mapCoordinates.lat.toFixed(6)}°</span>
+                  <span><strong>Longitude:</strong> {mapCoordinates.lng.toFixed(6)}°</span>
+                  {location && (
+                    <span className="location-name">
+                      <strong>Location:</strong> {location}
+                    </span>
+                  )}
+                  <span className="map-note">
+                    {location 
+                      ? "✅ Location name populated! Click 'Search' or press Enter to get hiking information."
+                      : "Loading location name..."}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* User Profile Section */}
@@ -451,124 +555,18 @@ function App() {
       {(riskData || loading) && (
         <div className="results-section">
           <h2>
-            {loading ? 'Analyzing conditions for...' : `Hiking Information for ${selectedLocation}`}
+            {loading ? 'Analyzing conditions for...' : (
+              <>
+                {`Hiking Information for ${selectedLocation}`}
+                {mapCoordinates && (
+                  <span className="coordinates-badge">
+                    📍 Using precise coordinates: {mapCoordinates.lat.toFixed(4)}°, {mapCoordinates.lng.toFixed(4)}°
+                  </span>
+                )}
+              </>
+            )}
           </h2>
           
-          {/* Risk Assessment Cards */}
-          <div className="collapsible-section">
-            <button 
-              className="section-header"
-              onClick={() => toggleSection('riskAssessment')}
-              disabled={loading}
-            >
-              <span className="section-title">
-                🏔️ Risk Assessment
-              </span>
-              <span className={`chevron ${sectionsOpen.riskAssessment ? 'open' : ''}`}>
-                ▼
-              </span>
-            </button>
-            <div className={`section-content ${sectionsOpen.riskAssessment ? 'open' : ''}`}>
-              {loading ? (
-                <div className="loading-content">
-                  <div className="risk-cards">
-                    <div className="risk-card loading">
-                      <div className="risk-header">
-                        <h3>Flood Risk</h3>
-                        <div className="loading-placeholder risk-value">
-                          <div className="shimmer"></div>
-                        </div>
-                      </div>
-                      <div className="loading-placeholder risk-level">
-                        <div className="shimmer"></div>
-                      </div>
-                    </div>
-
-                    <div className="risk-card loading">
-                      <div className="risk-header">
-                        <h3>Landslide Risk</h3>
-                        <div className="loading-placeholder risk-value">
-                          <div className="shimmer"></div>
-                        </div>
-                      </div>
-                      <div className="loading-placeholder risk-level">
-                        <div className="shimmer"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="risk-cards">
-                  <div className="risk-card">
-                    <div className="risk-header">
-                      <h3>Flood Risk</h3>
-                      <div 
-                        className="risk-value"
-                        style={{ color: getRiskColor(riskData!.floodRisk) }}
-                      >
-                        {riskData!.floodRisk.toFixed(1)}/5.0
-                      </div>
-                    </div>
-                    <div className="risk-level" style={{ color: getRiskColor(riskData!.floodRisk) }}>
-                      {getRiskLevel(riskData!.floodRisk)}
-                    </div>
-                  </div>
-
-                  <div className="risk-card">
-                    <div className="risk-header">
-                      <h3>Landslide Risk</h3>
-                      <div 
-                        className="risk-value"
-                        style={{ color: getRiskColor(riskData!.landslideRisk) }}
-                      >
-                        {riskData!.landslideRisk.toFixed(1)}/5.0
-                      </div>
-                    </div>
-                    <div className="risk-level" style={{ color: getRiskColor(riskData!.landslideRisk) }}>
-                      {getRiskLevel(riskData!.landslideRisk)}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Assessment Details Section */}
-          <div className="collapsible-section">
-            <button 
-              className="section-header"
-              onClick={() => toggleSection('assessmentDetails')}
-              disabled={loading}
-            >
-              <span className="section-title">
-                📋 Assessment Details
-              </span>
-              <span className={`chevron ${sectionsOpen.assessmentDetails ? 'open' : ''}`}>
-                ▼
-              </span>
-            </button>
-            <div className={`section-content ${sectionsOpen.assessmentDetails ? 'open' : ''}`}>
-              {loading ? (
-                <div className="loading-content">
-                  <div className="description-section loading">
-                    <div className="loading-placeholder text-block">
-                      <div className="shimmer"></div>
-                    </div>
-                    <div className="loading-placeholder text-block">
-                      <div className="shimmer"></div>
-                    </div>
-                  </div>
-                </div>
-              ) : riskDescription ? (
-                <div className="description-section">
-                  <p className="description-text">
-                    {riskDescription.description}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
           {/* Weather Analysis Section */}
           <div className="collapsible-section">
             <button 
@@ -604,6 +602,8 @@ function App() {
               ) : null}
             </div>
           </div>
+
+
 
           {/* Recommendations Section */}
           <div className="collapsible-section">
@@ -777,6 +777,123 @@ function App() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Risk Assessment Cards */}
+          <div className="collapsible-section">
+            <button 
+              className="section-header"
+              onClick={() => toggleSection('riskAssessment')}
+              disabled={loading}
+            >
+              <span className="section-title">
+                🏔️ Risk Assessment
+              </span>
+              <span className={`chevron ${sectionsOpen.riskAssessment ? 'open' : ''}`}>
+                ▼
+              </span>
+            </button>
+            <div className={`section-content ${sectionsOpen.riskAssessment ? 'open' : ''}`}>
+              {loading ? (
+                <div className="loading-content">
+                  <div className="risk-cards">
+                    <div className="risk-card loading">
+                      <div className="risk-header">
+                        <h3>Flood Risk</h3>
+                        <div className="loading-placeholder risk-value">
+                          <div className="shimmer"></div>
+                        </div>
+                      </div>
+                      <div className="loading-placeholder risk-level">
+                        <div className="shimmer"></div>
+                      </div>
+                    </div>
+
+                    <div className="risk-card loading">
+                      <div className="risk-header">
+                        <h3>Landslide Risk</h3>
+                        <div className="loading-placeholder risk-value">
+                          <div className="shimmer"></div>
+                        </div>
+                      </div>
+                      <div className="loading-placeholder risk-level">
+                        <div className="shimmer"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="risk-cards">
+                  <div className="risk-card">
+                    <div className="risk-header">
+                      <h3>Flood Risk</h3>
+                      <div 
+                        className="risk-value"
+                        style={{ color: getRiskColor(riskData!.floodRisk) }}
+                      >
+                        {riskData!.floodRisk}
+                      </div>
+                    </div>
+                    <div 
+                      className="risk-level"
+                      style={{ color: getRiskColor(riskData!.floodRisk) }}
+                    >
+                      {getRiskLevel(riskData!.floodRisk)}
+                    </div>
+                  </div>
+
+                  <div className="risk-card">
+                    <div className="risk-header">
+                      <h3>Landslide Risk</h3>
+                      <div 
+                        className="risk-value"
+                        style={{ color: getRiskColor(riskData!.landslideRisk) }}
+                      >
+                        {riskData!.landslideRisk}
+                      </div>
+                    </div>
+                    <div 
+                      className="risk-level"
+                      style={{ color: getRiskColor(riskData!.landslideRisk) }}
+                    >
+                      {getRiskLevel(riskData!.landslideRisk)}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Assessment Details Section */}
+          <div className="collapsible-section">
+            <button 
+              className="section-header"
+              onClick={() => toggleSection('assessmentDetails')}
+              disabled={loading}
+            >
+              <span className="section-title">
+                📋 Assessment Details
+              </span>
+              <span className={`chevron ${sectionsOpen.assessmentDetails ? 'open' : ''}`}>
+                ▼
+              </span>
+            </button>
+            <div className={`section-content ${sectionsOpen.assessmentDetails ? 'open' : ''}`}>
+              {loading ? (
+                <div className="loading-content">
+                  <div className="loading-placeholder description-section">
+                    <div className="shimmer"></div>
+                  </div>
+                </div>
+              ) : riskDescription ? (
+                <div className="description-section">
+                  <h3>Risk Analysis Summary</h3>
+                  <p className="description-text">
+                    {riskDescription.description}
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import express from 'express';
 import { getRiskAssessment } from '../controllers/riskControllerRisk.js';
 import { getRiskSummary } from '../controllers/riskControllerSummary.js';
-import { getWeatherForecast } from '../controllers/weather.js';
+import { getWeatherForecast, getLocationName } from '../controllers/weather.js';
 import { getComprehensiveRecommendations } from '../controllers/recommendations.js';
 import { getChatResponse } from '../controllers/chat.js';
 
@@ -13,6 +13,9 @@ router.get('/assessment', getRiskAssessment);
 router.get('/summarize', getRiskSummary);
 
 router.get('/weather', getWeatherForecast);
+
+// GET /api/risk/location-name?location=<lat,lng> - Get location name from coordinates
+router.get('/location-name', getLocationName);
 
 router.post('/recommendations', getComprehensiveRecommendations);
 

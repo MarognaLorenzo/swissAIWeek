@@ -61,6 +61,27 @@
   box-shadow: 0 0 0 3px rgba(74, 85, 104, 0.1);
 }
 
+.search-input.auto-filled {
+  border-color: #38a169;
+  box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.2);
+  animation: autoFillPulse 0.5s ease-in-out;
+}
+
+@keyframes autoFillPulse {
+  0% { 
+    background-color: rgba(56, 161, 105, 0.1);
+    transform: scale(1);
+  }
+  50% { 
+    background-color: rgba(56, 161, 105, 0.2);
+    transform: scale(1.02);
+  }
+  100% { 
+    background-color: white;
+    transform: scale(1);
+  }
+}
+
 .search-button {
   padding: 1rem 2rem;
   background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
@@ -943,4 +964,63 @@
 /* Profile section loading */
 .profile-section .loading-placeholder {
   min-height: 200px;
+}
+
+/* Map selection styles */
+.map-container {
+  padding: 1rem;
+}
+
+.coordinates-display {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(145deg, #f7fafc 0%, #edf2f7 100%);
+  border-radius: 8px;
+  border-left: 4px solid #4a5568;
+}
+
+.coordinates-display h4 {
+  margin: 0 0 0.5rem 0;
+  color: #2d3748;
+  font-size: 1.1rem;
+}
+
+.coordinate-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.coordinate-info span {
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.location-name {
+  color: #2d3748 !important;
+  font-weight: 500 !important;
+  background: rgba(56, 161, 105, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border-left: 3px solid #38a169;
+}
+
+.map-note {
+  font-style: italic;
+  color: #718096 !important;
+  font-size: 0.8rem !important;
+}
+
+/* Coordinates badge */
+.coordinates-badge {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: #4a5568;
+  background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e0 100%);
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  margin-top: 0.5rem;
+  border: 1px solid #a0aec0;
+  font-family: monospace;
 }

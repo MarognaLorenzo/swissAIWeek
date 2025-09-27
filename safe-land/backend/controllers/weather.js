@@ -84,6 +84,51 @@ const formatWeatherForLLM = (weatherData) => {
   };
 };
 
+// New endpoint to get only location name from coordinates (no LLM involved)
+export const getLocationName = async (req, res) => {
+  try {
+    const {location} = req.query;
+    console.log("\n\nGetting location name for coordinates: " + location + "\n\n");
+
+    if (!location) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Location parameter is required'
+      });
+    }
+
+    // Fetch weather data (we only need the location info)
+    const weatherResponse = await fetch(`http://api.weatherapi.com/v1/current.json?key=${weatherApiKey}&q=${encodeURIComponent(location)}&aqi=no`);
+    
+    if (!weatherResponse.ok) {
+      throw new Error(`Weather API error: ${weatherResponse.status}`);
+    }
+
+    const weatherData = await weatherResponse.json();
+    console.log("Location resolved:", weatherData.location?.name);
+
+    // Return only the location information
+    res.status(200).json({
+      location: {
+        name: weatherData.location.name,
+        region: weatherData.location.region,
+        country: weatherData.location.country,
+        lat: weatherData.location.lat,
+        lon: weatherData.location.lon,
+        tz_id: weatherData.location.tz_id,
+        localtime: weatherData.location.localtime
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in getLocationName:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to get location name: ' + error.message
+    });
+  }
+};
+
 export const getWeatherForecast = async (req, res) => {
   try {
     const {location} = req.query;
