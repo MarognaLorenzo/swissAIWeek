@@ -22,6 +22,18 @@ interface RecommendationsData {
   location: string;
 }
 
+interface ChatMessage {
+  id: string;
+  type: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+interface ChatResponse {
+  answer: string;
+  timestamp: string;
+}
+
 function App() {
   const [selectedLocation, setSelectedLocation] = useState('')
   const [location, setLocation] = useState('')
@@ -38,8 +50,14 @@ function App() {
     riskAssessment: true,
     weatherAnalysis: false,
     recommendations: false,
-    assessmentDetails: false
+    assessmentDetails: false,
+    chat: false
   })
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [currentQuestion, setCurrentQuestion] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
 
   // API function to fetch risk data from backend
   const fetchRiskData = async (locationQuery: string): Promise<RiskData> => {
@@ -179,6 +197,72 @@ function App() {
       ...prev,
       [section]: !prev[section]
     }))
+  }
+
+  const sendChatMessage = async () => {
+    if (!currentQuestion.trim() || !riskData || !selectedLocation) {
+      return
+    }
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString() + '_user',
+      type: 'user',
+      content: currentQuestion,
+      timestamp: new Date()
+    }
+
+    setChatMessages(prev => [...prev, userMessage])
+    setCurrentQuestion('')
+    setChatLoading(true)
+
+    try {
+      const response = await fetch('http://localhost:3001/api/risk/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          location: selectedLocation,
+          question: currentQuestion,
+          floodRisk: riskData.floodRisk,
+          landslideRisk: riskData.landslideRisk
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const chatResponse: ChatResponse = await response.json()
+      
+      const assistantMessage: ChatMessage = {
+        id: Date.now().toString() + '_assistant',
+        type: 'assistant',
+        content: chatResponse.answer,
+        timestamp: new Date()
+      }
+
+      setChatMessages(prev => [...prev, assistantMessage])
+
+    } catch (error) {
+      console.error('Chat error:', error)
+      const errorMessage: ChatMessage = {
+        id: Date.now().toString() + '_error',
+        type: 'assistant',
+        content: 'Sorry, I encountered an error while processing your question. Please try again.',
+        timestamp: new Date()
+      }
+      setChatMessages(prev => [...prev, errorMessage])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  const handleChatKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendChatMessage()
+    }
   }
 
   const getRiskLevel = (value: number): string => {
@@ -384,6 +468,95 @@ function App() {
               </div>
             </div>
           )}
+
+          {/* Chat Assistant Section */}
+          <div className="collapsible-section">
+            <button 
+              className="section-header"
+              onClick={() => toggleSection('chat')}
+            >
+              <span className="section-title">
+                💬 Ask the Assistant
+                <span className="chat-subtitle">
+                  Get personalized advice about clothing and preparations
+                </span>
+              </span>
+              <span className={`chevron ${sectionsOpen.chat ? 'open' : ''}`}>
+                ▼
+              </span>
+            </button>
+            <div className={`section-content ${sectionsOpen.chat ? 'open' : ''}`}>
+              <div className="chat-container">
+                <div className="chat-messages">
+                  {chatMessages.length === 0 && (
+                    <div className="chat-welcome">
+                      <p>👋 Hi! I'm your SafeLand assistant. Ask me anything about:</p>
+                      <ul>
+                        <li>What clothing to wear for the current weather</li>
+                        <li>Safety precautions for the risk levels</li>
+                        <li>What gear to bring for specific activities</li>
+                        <li>Travel tips for the conditions</li>
+                      </ul>
+                    </div>
+                  )}
+                  {chatMessages.map((message) => (
+                    <div key={message.id} className={`chat-message ${message.type}`}>
+                      <div className="message-content">
+                        <div className="message-header">
+                          <span className="message-sender">
+                            {message.type === 'user' ? '👤 You' : '🤖 SafeLand Assistant'}
+                          </span>
+                          <span className="message-time">
+                            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div className="message-text">
+                          {message.content}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="chat-message assistant">
+                      <div className="message-content">
+                        <div className="message-header">
+                          <span className="message-sender">🤖 SafeLand Assistant</span>
+                        </div>
+                        <div className="message-text typing">
+                          <span className="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                          Thinking...
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="chat-input-container">
+                  <div className="chat-input-wrapper">
+                    <textarea
+                      value={currentQuestion}
+                      onChange={(e) => setCurrentQuestion(e.target.value)}
+                      onKeyPress={handleChatKeyPress}
+                      placeholder="Ask me about clothing, gear, safety tips..."
+                      className="chat-input"
+                      rows={2}
+                      disabled={chatLoading}
+                    />
+                    <button
+                      onClick={sendChatMessage}
+                      disabled={!currentQuestion.trim() || chatLoading}
+                      className="chat-send-button"
+                    >
+                      {chatLoading ? '...' : '📤'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
