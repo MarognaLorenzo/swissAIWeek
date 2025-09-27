@@ -4,8 +4,13 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-const weatherApiKey = process.env.WEATHER_KEY || "3ad18473c0d9465584512445252709";
+const weatherApiKey = process.env.WEATHER_KEY;
 const openaiApiKey = process.env.SWISS_AI_PLATFORM_API_KEY;
+
+if (!weatherApiKey) {
+  console.error('WEATHER_KEY environment variable is not set');
+  process.exit(1);
+}
 
 if (!openaiApiKey) {
   console.error('SWISS_AI_PLATFORM_API_KEY environment variable is not set');
