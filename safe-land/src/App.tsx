@@ -17,6 +17,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [riskDescription, setRiskDescription] = useState<Description | null> (null)
+  const [weather, setWeather] = useState('')
 
   // API function to fetch risk data from backend
   const fetchRiskData = async (locationQuery: string): Promise<RiskData> => {
@@ -70,6 +71,21 @@ function App() {
 
       const description = await response_summary.json()
       setRiskDescription(description)
+
+      const response_weather = await fetch(`http://localhost:3001/api/risk/weather?location=${encodeURIComponent(location)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response_weather.ok) {
+        throw new Error(`HTTP error! status: ${response_weather.status}`)
+      }
+
+      const weath = await response_weather.json()
+      setWeather(weath.description)
+
 
     } catch (err) {
       console.error('API Error:', err)
@@ -176,6 +192,14 @@ function App() {
               <h3>Assessment Details</h3>
               <p className="description-text">
                 {riskDescription.description}
+              </p>
+            </div>
+          )}
+          {weather && (
+            <div className="weather-section">
+              <h3>Current Weather Analysis</h3>
+              <p className="weather-text">
+                {weather}
               </p>
             </div>
           )}
