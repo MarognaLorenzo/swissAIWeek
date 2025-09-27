@@ -1,6 +1,6 @@
 ## Getting Started
 
-0. Install npm
+0. Install [npm](https://www.npmjs.com/) + [node and nvm](https://nodejs.org/en/download/current) if necessary. Pick version 24 if possible.
 
 1. Install dependencies and start front end (folder `safe-land`):
 ```bash
