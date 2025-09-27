@@ -5,11 +5,26 @@
 npm install
 npm run dev
 ```
-2. Repeat the same inside the `backend` folder
+2. In a different terminal, repeat the same inside the `backend` folder
 ```bash
-cd backend
 npm install
 npm run dev
+```
+
+3. Generate a file `.env` inside the folder backend. You can rename the following and add the api keys:
+```bash
+# Swiss AI Platform API Configuration
+SWISS_AI_PLATFORM_API_KEY=<keyForApertusAPI>
+
+# Weather API Configuration - Leaving my key because it's a free trial account
+WEATHER_KEY=3ad18473c0d9465584512445252709
+
+# Server Configuration
+PORT=3001
+NODE_ENV=development
+
+# Frontend URL for CORS
+FRONTEND_URL=http://localhost:5173
 ```
 
 
