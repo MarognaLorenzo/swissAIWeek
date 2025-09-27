@@ -205,17 +205,26 @@ Consider factors like temperature, precipitation, wind, visibility, UV index, an
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         analysisData = JSON.parse(jsonMatch[0]);
+        // Ensure we have the analysis field, if not use the first few sentences
+        if (!analysisData.analysis && analysisData.recommendations) {
+          // Extract analysis from the natural language description if missing
+          const sentences = formattedWeather.naturalLanguage.split('. ').slice(0, 3);
+          analysisData.analysis = sentences.join('. ') + '.';
+        }
       } else {
-        // Fallback if JSON parsing fails
+        // Fallback if JSON parsing fails - try to extract analysis from natural language
+        const sentences = formattedWeather.naturalLanguage.split('. ').slice(0, 3);
         analysisData = {
-          analysis: aiResponse.trim(),
+          analysis: sentences.join('. ') + '.',
           recommendations: []
         };
       }
     } catch (parseError) {
       console.error('Error parsing AI response:', parseError);
+      // Use weather summary as fallback for analysis
+      const sentences = formattedWeather.naturalLanguage.split('. ').slice(0, 3);
       analysisData = {
-        analysis: aiResponse.trim(),
+        analysis: sentences.join('. ') + '.',
         recommendations: []
       };
     }
@@ -223,7 +232,7 @@ Consider factors like temperature, precipitation, wind, visibility, UV index, an
     // Prepare response
     const response = {
       timestamp: new Date().toISOString(),
-      description: analysisData.analysis || aiResponse.trim(),
+      description: analysisData.analysis || formattedWeather.naturalLanguage.split('. ').slice(0, 3).join('. ') + '.',
       recommendations: analysisData.recommendations || [],
       weatherSummary: formattedWeather.naturalLanguage,
       structuredData: formattedWeather.structured

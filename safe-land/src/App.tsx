@@ -65,7 +65,7 @@ function App() {
   // Collapsible sections state
   const [sectionsOpen, setSectionsOpen] = useState({
     riskAssessment: false,
-    weatherAnalysis: true,
+    weatherAnalysis: false,
     recommendations: false,
     assessmentDetails: false,
     chat: false,
@@ -123,6 +123,15 @@ function App() {
     setLoading(true)
     setError(null)
     
+    // Close all sections at start of new search
+    setSectionsOpen(prev => ({
+      ...prev,
+      weatherAnalysis: false,
+      recommendations: false,
+      riskAssessment: false,
+      assessmentDetails: false
+    }))
+    
     try {
       const data = await fetchRiskData(location)
       setRiskData(data)
@@ -159,6 +168,12 @@ function App() {
 
       const weath = await response_weather.json()
       setWeather(weath.description)
+
+      // Auto-open weather section when data is loaded
+      setSectionsOpen(prev => ({
+        ...prev,
+        weatherAnalysis: true
+      }))
 
       // Fetch recommendations based on weather and risk data - use same query format as weather
       const recommendationsQuery = mapCoordinates 
@@ -555,7 +570,7 @@ function App() {
       {(riskData || loading) && (
         <div className="results-section">
           <h2>
-            {loading ? 'Analyzing conditions for...' : (
+            {loading ? `Just a Second! Analyzing conditions for ${selectedLocation} ...` : (
               <>
                 {`Hiking Information for ${selectedLocation}`}
                 {mapCoordinates && (
