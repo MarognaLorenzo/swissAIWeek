@@ -1,7 +1,3 @@
-import { riskData } from '../data/riskData.js';
-
-// Simulate processing delay (like real API calls)
-const simulateDelay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
 // GET /api/risk/assessment?location=<location>
 export const getRiskAssessment = async (req, res) => {
@@ -16,19 +12,9 @@ export const getRiskAssessment = async (req, res) => {
         message: 'Location parameter is required'
       });
     }
-
-    // Simulate API processing time
-    await simulateDelay(800);
-
-    const locationKey = location.toLowerCase().trim();
     
-    // Check if we have specific data for this location
-    let assessment = riskData[locationKey];
-    
-    if (!assessment) {
       // Generate dynamic risk assessment for unknown locations
-      assessment = generateDynamicAssessment(location);
-    }
+    assessment = generateDynamicAssessment(location);
 
     // Add metadata
     const response = {
