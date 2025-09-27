@@ -109,34 +109,72 @@ export const getWeatherForecast = async (req, res) => {
     // Convert to LLM-friendly format
     const formattedWeather = formatWeatherForLLM(weatherData);
 
-    // Generate AI analysis of the weather data
-    const weatherPrompt = `Analyze the following weather conditions and provide insights about potential risks or notable conditions. Focus on any weather patterns that might affect outdoor activities, travel, or safety concerns. Be concise and practical.
+    // Generate AI analysis of the weather data with recommendations
+    const weatherPrompt = `Analyze the following weather conditions and risk data, then provide two things:
+
+1. A brief weather analysis (2-3 sentences) highlighting important aspects for outdoor activities
+2. A list of recommended items to bring based on the conditions
 
 Weather data: ${formattedWeather.naturalLanguage}
 
-Provide a brief analysis (2-3 sentences) highlighting the most important weather aspects for someone planning activities in this location.`;
+Please format your response as JSON with this structure:
+{
+  "analysis": "Brief weather analysis text here",
+  "recommendations": [
+    {"item": "torch", "reason": "low visibility expected"},
+    {"item": "waterproof jacket", "reason": "high chance of rain"},
+    {"item": "warm clothing", "reason": "temperature below 10°C"}
+  ]
+}
+
+Consider factors like temperature, precipitation, wind, visibility, UV index, and time of day. Recommend practical items like: torch/flashlight, waterproof clothing, warm layers, sun protection, sturdy footwear, umbrella, etc.`;
 
     const stream = await client.chat.completions.create({
       model: "swiss-ai/Apertus-70B",
       messages: [
-        {"role": "system", "content": "You are a weather analyst providing practical insights about weather conditions. Focus on safety, comfort, and planning considerations."},
+        {"role": "system", "content": "You are a practical outdoor safety advisor. Analyze weather conditions and recommend specific items people should bring. Always respond with valid JSON format. Be concise but helpful."},
         {"role": "user", "content": weatherPrompt}
       ],
       stream: true
     });
 
-    let aiAnalysis = "";
+    let aiResponse = "";
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
-        aiAnalysis += content;
+        aiResponse += content;
       }
+    }
+
+    console.log("AI Response:", aiResponse);
+
+    // Parse AI response to extract analysis and recommendations
+    let analysisData = {};
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        analysisData = JSON.parse(jsonMatch[0]);
+      } else {
+        // Fallback if JSON parsing fails
+        analysisData = {
+          analysis: aiResponse.trim(),
+          recommendations: []
+        };
+      }
+    } catch (parseError) {
+      console.error('Error parsing AI response:', parseError);
+      analysisData = {
+        analysis: aiResponse.trim(),
+        recommendations: []
+      };
     }
 
     // Prepare response
     const response = {
       timestamp: new Date().toISOString(),
-      description: aiAnalysis.trim(),
+      description: analysisData.analysis || aiResponse.trim(),
+      recommendations: analysisData.recommendations || [],
       weatherSummary: formattedWeather.naturalLanguage,
       structuredData: formattedWeather.structured
     };
