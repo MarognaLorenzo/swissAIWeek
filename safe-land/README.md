@@ -1,11 +1,13 @@
 ## Getting Started
 
-1. Install dependencies and start front end:
+0. Install npm
+
+1. Install dependencies and start front end (folder `safe-land`):
 ```bash
 npm install
 npm run dev
 ```
-2. In a different terminal, repeat the same inside the `backend` folder
+2. In a different terminal, repeat the same inside the `safe-land/backend` folder
 ```bash
 npm install
 npm run dev
