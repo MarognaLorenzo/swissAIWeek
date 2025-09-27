@@ -19,7 +19,7 @@ const client = new OpenAI({
 
 export const getChatResponse = async (req, res) => {
   try {
-    const { location, question, floodRisk, landslideRisk } = req.body;
+    const { location, question, floodRisk, landslideRisk, userProfile } = req.body;
 
     if (!location || !question) {
       return res.status(400).json({
@@ -44,6 +44,20 @@ export const getChatResponse = async (req, res) => {
         (day ? `Today's forecast: ${day.mintemp_c}°C to ${day.maxtemp_c}°C, ${day.condition.text}, ${day.daily_chance_of_rain}% chance of rain. ` : '');
     }
 
+    // Create user profile context
+    let userContext = "";
+    if (userProfile) {
+      const profileParts = [];
+      if (userProfile.age) profileParts.push(`${userProfile.age} years old`);
+      if (userProfile.gender && userProfile.gender !== '') profileParts.push(`${userProfile.gender}`);
+      if (userProfile.weight) profileParts.push(`${userProfile.weight}kg`);
+      profileParts.push(`${userProfile.experience} hiking experience`);
+      profileParts.push(`${userProfile.fitness} fitness level`);
+      profileParts.push(`planning a ${userProfile.hikeDifficulty} difficulty hike`);
+      
+      userContext = `User Profile: ${profileParts.join(', ')}.`;
+    }
+
     // Create comprehensive context for the AI
     const contextPrompt = `You are a helpful outdoor safety and travel assistant. A user is asking about preparations for visiting ${location}. 
 
@@ -52,9 +66,11 @@ ${weatherContext}
 Flood Risk: ${floodRisk || 'Unknown'}/5.0
 Landslide Risk: ${landslideRisk || 'Unknown'}/5.0
 
+${userContext ? `HIKER PROFILE: ${userContext}` : ''}
+
 USER QUESTION: ${question}
 
-Please provide a helpful, practical response considering the weather conditions and risk levels. Be specific about clothing, gear, safety precautions, or activities as relevant to their question. Keep your response conversational, friendly, and under 200 words.`;
+Please provide a helpful, practical response considering the weather conditions, risk levels${userContext ? ', and the hiker\'s personal profile' : ''}. Be specific about clothing, gear, safety precautions, or activities as relevant to their question. ${userContext ? 'Tailor your advice to their experience level, fitness, and planned hike difficulty.' : ''} Keep your response conversational, friendly, and under 200 words.`;
 
     const completion = await client.chat.completions.create({
       model: "swiss-ai/Apertus-70B",

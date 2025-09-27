@@ -85,6 +85,76 @@
   cursor: not-allowed;
 }
 
+/* User Profile Section Styling */
+.user-profile-section {
+  background: linear-gradient(145deg, #fefcbf 0%, #fef5e7 100%);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 15px rgba(45, 55, 72, 0.1);
+  margin-bottom: 2rem;
+  border: 1px solid #fbd38d;
+}
+
+.profile-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.profile-header h3 {
+  margin: 0 0 0.5rem 0;
+  color: #744210;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.profile-header p {
+  margin: 0;
+  color: #975a16;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-field label {
+  font-weight: 600;
+  color: #744210;
+  font-size: 0.95rem;
+}
+
+.profile-input,
+.profile-select {
+  padding: 0.75rem;
+  border: 2px solid #fbd38d;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: white;
+  color: #2d3748;
+  transition: border-color 0.3s ease;
+}
+
+.profile-input:focus,
+.profile-select:focus {
+  outline: none;
+  border-color: #d69e2e;
+  box-shadow: 0 0 0 3px rgba(214, 158, 46, 0.1);
+}
+
+.profile-input::placeholder {
+  color: #a0aec0;
+}
+
 .error-message {
   color: #e53e3e;
   text-align: center;
@@ -315,6 +385,22 @@
 }
 
 .recommendation-checkbox:checked + .checkbox-custom {
+  background: #38a169;
+  border-color: #38a169;
+}
+
+/* Priority-specific checkbox colors */
+.priority-high .recommendation-checkbox:checked + .checkbox-custom {
+  background: #c53030;
+  border-color: #c53030;
+}
+
+.priority-medium .recommendation-checkbox:checked + .checkbox-custom {
+  background: #d69e2e;
+  border-color: #d69e2e;
+}
+
+.priority-low .recommendation-checkbox:checked + .checkbox-custom {
   background: #38a169;
   border-color: #38a169;
 }
@@ -734,6 +820,19 @@
     flex-direction: column;
   }
   
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .user-profile-section {
+    padding: 1.5rem;
+  }
+  
+  .profile-header h3 {
+    font-size: 1.3rem;
+  }
+  
   .risk-cards {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -793,4 +892,55 @@
     align-self: flex-end;
     min-width: 80px;
   }
+}
+
+/* Loading states */
+.loading-content {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, 
+    rgba(65, 87, 122, 0.1) 25%, 
+    rgba(65, 87, 122, 0.3) 50%, 
+    rgba(65, 87, 122, 0.1) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.loading-placeholder {
+  min-height: 60px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+/* Risk section loading */
+.risk-section .loading-placeholder {
+  min-height: 80px;
+}
+
+/* Weather section loading */
+.weather-section .loading-placeholder {
+  min-height: 120px;
+}
+
+/* Recommendations section loading */
+.recommendations-section .loading-placeholder {
+  min-height: 100px;
+}
+
+/* Chat section loading */
+.chat-section .loading-placeholder {
+  min-height: 40px;
+}
+
+/* Profile section loading */
+.profile-section .loading-placeholder {
+  min-height: 200px;
 }

@@ -34,6 +34,15 @@ interface ChatResponse {
   timestamp: string;
 }
 
+interface UserProfile {
+  experience: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  age: number | '';
+  gender: 'male' | 'female' | 'other' | '';
+  weight: number | '';
+  fitness: 'low' | 'moderate' | 'high' | 'very-high';
+  hikeDifficulty: 'easy' | 'moderate' | 'difficult' | 'very-difficult';
+}
+
 function App() {
   const [selectedLocation, setSelectedLocation] = useState('')
   const [location, setLocation] = useState('')
@@ -51,13 +60,24 @@ function App() {
     weatherAnalysis: false,
     recommendations: false,
     assessmentDetails: false,
-    chat: false
+    chat: false,
+    userProfile: false
   })
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [currentQuestion, setCurrentQuestion] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+
+  // User profile state
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    experience: 'intermediate',
+    age: '',
+    gender: '',
+    weight: '',
+    fitness: 'moderate',
+    hikeDifficulty: 'moderate'
+  })
 
   // API function to fetch risk data from backend
   const fetchRiskData = async (locationQuery: string): Promise<RiskData> => {
@@ -128,10 +148,13 @@ function App() {
 
       // Fetch recommendations based on weather and risk data
       const response_recommendations = await fetch(`http://localhost:3001/api/risk/recommendations?location=${encodeURIComponent(location)}&floodRisk=${encodeURIComponent(data.floodRisk)}&landslideRisk=${encodeURIComponent(data.landslideRisk)}`, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          userProfile: userProfile
+        })
       })
 
       if (!response_recommendations.ok) {
@@ -225,7 +248,8 @@ function App() {
           location: selectedLocation,
           question: currentQuestion,
           floodRisk: riskData.floodRisk,
-          landslideRisk: riskData.landslideRisk
+          landslideRisk: riskData.landslideRisk,
+          userProfile: userProfile
         })
       })
 
@@ -265,6 +289,26 @@ function App() {
     }
   }
 
+  const updateUserProfile = (field: keyof UserProfile, value: any) => {
+    setUserProfile(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const createUserContextString = () => {
+    const profileStrings = []
+    
+    if (userProfile.age) profileStrings.push(`${userProfile.age} years old`)
+    if (userProfile.gender) profileStrings.push(`${userProfile.gender}`)
+    if (userProfile.weight) profileStrings.push(`${userProfile.weight}kg`)
+    profileStrings.push(`${userProfile.experience} hiking experience`)
+    profileStrings.push(`${userProfile.fitness} fitness level`)
+    profileStrings.push(`planning a ${userProfile.hikeDifficulty} difficulty hike`)
+    
+    return profileStrings.join(', ')
+  }
+
   const getRiskLevel = (value: number): string => {
     if (value < 1.5) return 'Low'
     if (value < 3) return 'Moderate'
@@ -282,8 +326,8 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>SafeLand Risk Assessment</h1>
-        <p className="subtitle">Get flood and landslide risk information for any location</p>
+        <h1>🇨🇭TheSwissHiker🇨🇭</h1>
+        <p className="subtitle">Get comprehensive hiking information for any location in Switzerland</p>
       </header>
 
       <div className="search-section">
@@ -293,7 +337,7 @@ function App() {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Enter location (e.g., Zurich, Bern, Geneva...)"
+            placeholder="Enter location (e.g., Zermatt, Interlaken, Grindelwald...)"
             className="search-input"
           />
           <button 
@@ -312,15 +356,110 @@ function App() {
         )}
       </div>
 
-      {riskData && (
+      {/* User Profile Section */}
+      <div className="user-profile-section">
+        <div className="profile-header">
+          <h3>🧗‍♂️ Tell us about you!</h3>
+          <p>Help us personalize your recommendations</p>
+        </div>
+        
+        <div className="profile-grid">
+          <div className="profile-field">
+            <label>Hiking Experience</label>
+            <select 
+              value={userProfile.experience} 
+              onChange={(e) => updateUserProfile('experience', e.target.value)}
+              className="profile-select"
+            >
+              <option value="beginner">Beginner (0-2 years)</option>
+              <option value="intermediate">Intermediate (2-5 years)</option>
+              <option value="advanced">Advanced (5+ years)</option>
+              <option value="expert">Expert (10+ years)</option>
+            </select>
+          </div>
+
+          <div className="profile-field">
+            <label>Age</label>
+            <input 
+              type="number" 
+              value={userProfile.age} 
+              onChange={(e) => updateUserProfile('age', e.target.value ? parseInt(e.target.value) : '')}
+              placeholder="25"
+              min="1"
+              max="100"
+              className="profile-input"
+            />
+          </div>
+
+          <div className="profile-field">
+            <label>Gender</label>
+            <select 
+              value={userProfile.gender} 
+              onChange={(e) => updateUserProfile('gender', e.target.value)}
+              className="profile-select"
+            >
+              <option value="">Prefer not to say</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div className="profile-field">
+            <label>Weight (kg)</label>
+            <input 
+              type="number" 
+              value={userProfile.weight} 
+              onChange={(e) => updateUserProfile('weight', e.target.value ? parseInt(e.target.value) : '')}
+              placeholder="70"
+              min="1"
+              max="300"
+              className="profile-input"
+            />
+          </div>
+
+          <div className="profile-field">
+            <label>Fitness Level</label>
+            <select 
+              value={userProfile.fitness} 
+              onChange={(e) => updateUserProfile('fitness', e.target.value)}
+              className="profile-select"
+            >
+              <option value="low">Low - Occasional exercise</option>
+              <option value="moderate">Moderate - Regular exercise</option>
+              <option value="high">High - Very active</option>
+              <option value="very-high">Very High - Athlete level</option>
+            </select>
+          </div>
+
+          <div className="profile-field">
+            <label>Planned Hike Difficulty</label>
+            <select 
+              value={userProfile.hikeDifficulty} 
+              onChange={(e) => updateUserProfile('hikeDifficulty', e.target.value)}
+              className="profile-select"
+            >
+              <option value="easy">Easy - Well-marked trails, gentle slopes</option>
+              <option value="moderate">Moderate - Some steep sections, 4-6 hours</option>
+              <option value="difficult">Difficult - Challenging terrain, 6-8 hours</option>
+              <option value="very-difficult">Very Difficult - Expert level, 8+ hours</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {(riskData || loading) && (
         <div className="results-section">
-          <h2>Risk Assessment for {selectedLocation}</h2>
+          <h2>
+            {loading ? 'Analyzing conditions for...' : `Hiking Information for ${selectedLocation}`}
+          </h2>
           
-          {/* Risk Assessment Cards - Always visible as main content */}
+          {/* Risk Assessment Cards */}
           <div className="collapsible-section">
             <button 
               className="section-header"
               onClick={() => toggleSection('riskAssessment')}
+              disabled={loading}
             >
               <span className="section-title">
                 🏔️ Risk Assessment
@@ -330,106 +469,188 @@ function App() {
               </span>
             </button>
             <div className={`section-content ${sectionsOpen.riskAssessment ? 'open' : ''}`}>
-              <div className="risk-cards">
-                <div className="risk-card">
-                  <div className="risk-header">
-                    <h3>Flood Risk</h3>
-                    <div 
-                      className="risk-value"
-                      style={{ color: getRiskColor(riskData.floodRisk) }}
-                    >
-                      {riskData.floodRisk.toFixed(1)}/5.0
+              {loading ? (
+                <div className="loading-content">
+                  <div className="risk-cards">
+                    <div className="risk-card loading">
+                      <div className="risk-header">
+                        <h3>Flood Risk</h3>
+                        <div className="loading-placeholder risk-value">
+                          <div className="shimmer"></div>
+                        </div>
+                      </div>
+                      <div className="loading-placeholder risk-level">
+                        <div className="shimmer"></div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="risk-level" style={{ color: getRiskColor(riskData.floodRisk) }}>
-                    {getRiskLevel(riskData.floodRisk)}
-                  </div>
-                </div>
 
-                <div className="risk-card">
-                  <div className="risk-header">
-                    <h3>Landslide Risk</h3>
-                    <div 
-                      className="risk-value"
-                      style={{ color: getRiskColor(riskData.landslideRisk) }}
-                    >
-                      {riskData.landslideRisk.toFixed(1)}/5.0
+                    <div className="risk-card loading">
+                      <div className="risk-header">
+                        <h3>Landslide Risk</h3>
+                        <div className="loading-placeholder risk-value">
+                          <div className="shimmer"></div>
+                        </div>
+                      </div>
+                      <div className="loading-placeholder risk-level">
+                        <div className="shimmer"></div>
+                      </div>
                     </div>
                   </div>
-                  <div className="risk-level" style={{ color: getRiskColor(riskData.landslideRisk) }}>
-                    {getRiskLevel(riskData.landslideRisk)}
+                </div>
+              ) : (
+                <div className="risk-cards">
+                  <div className="risk-card">
+                    <div className="risk-header">
+                      <h3>Flood Risk</h3>
+                      <div 
+                        className="risk-value"
+                        style={{ color: getRiskColor(riskData!.floodRisk) }}
+                      >
+                        {riskData!.floodRisk.toFixed(1)}/5.0
+                      </div>
+                    </div>
+                    <div className="risk-level" style={{ color: getRiskColor(riskData!.floodRisk) }}>
+                      {getRiskLevel(riskData!.floodRisk)}
+                    </div>
+                  </div>
+
+                  <div className="risk-card">
+                    <div className="risk-header">
+                      <h3>Landslide Risk</h3>
+                      <div 
+                        className="risk-value"
+                        style={{ color: getRiskColor(riskData!.landslideRisk) }}
+                      >
+                        {riskData!.landslideRisk.toFixed(1)}/5.0
+                      </div>
+                    </div>
+                    <div className="risk-level" style={{ color: getRiskColor(riskData!.landslideRisk) }}>
+                      {getRiskLevel(riskData!.landslideRisk)}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
           {/* Assessment Details Section */}
-          {riskDescription && (
-            <div className="collapsible-section">
-              <button 
-                className="section-header"
-                onClick={() => toggleSection('assessmentDetails')}
-              >
-                <span className="section-title">
-                  📋 Assessment Details
-                </span>
-                <span className={`chevron ${sectionsOpen.assessmentDetails ? 'open' : ''}`}>
-                  ▼
-                </span>
-              </button>
-              <div className={`section-content ${sectionsOpen.assessmentDetails ? 'open' : ''}`}>
+          <div className="collapsible-section">
+            <button 
+              className="section-header"
+              onClick={() => toggleSection('assessmentDetails')}
+              disabled={loading}
+            >
+              <span className="section-title">
+                📋 Assessment Details
+              </span>
+              <span className={`chevron ${sectionsOpen.assessmentDetails ? 'open' : ''}`}>
+                ▼
+              </span>
+            </button>
+            <div className={`section-content ${sectionsOpen.assessmentDetails ? 'open' : ''}`}>
+              {loading ? (
+                <div className="loading-content">
+                  <div className="description-section loading">
+                    <div className="loading-placeholder text-block">
+                      <div className="shimmer"></div>
+                    </div>
+                    <div className="loading-placeholder text-block">
+                      <div className="shimmer"></div>
+                    </div>
+                  </div>
+                </div>
+              ) : riskDescription ? (
                 <div className="description-section">
                   <p className="description-text">
                     {riskDescription.description}
                   </p>
                 </div>
-              </div>
+              ) : null}
             </div>
-          )}
+          </div>
 
           {/* Weather Analysis Section */}
-          {weather && (
-            <div className="collapsible-section">
-              <button 
-                className="section-header"
-                onClick={() => toggleSection('weatherAnalysis')}
-              >
-                <span className="section-title">
-                  🌤️ Current Weather Analysis
-                </span>
-                <span className={`chevron ${sectionsOpen.weatherAnalysis ? 'open' : ''}`}>
-                  ▼
-                </span>
-              </button>
-              <div className={`section-content ${sectionsOpen.weatherAnalysis ? 'open' : ''}`}>
+          <div className="collapsible-section">
+            <button 
+              className="section-header"
+              onClick={() => toggleSection('weatherAnalysis')}
+              disabled={loading}
+            >
+              <span className="section-title">
+                🌤️ Current Weather Analysis
+              </span>
+              <span className={`chevron ${sectionsOpen.weatherAnalysis ? 'open' : ''}`}>
+                ▼
+              </span>
+            </button>
+            <div className={`section-content ${sectionsOpen.weatherAnalysis ? 'open' : ''}`}>
+              {loading ? (
+                <div className="loading-content">
+                  <div className="weather-section-content loading">
+                    <div className="loading-placeholder text-block">
+                      <div className="shimmer"></div>
+                    </div>
+                    <div className="loading-placeholder text-block">
+                      <div className="shimmer"></div>
+                    </div>
+                  </div>
+                </div>
+              ) : weather ? (
                 <div className="weather-section-content">
                   <p className="weather-text">
                     {weather}
                   </p>
                 </div>
-              </div>
+              ) : null}
             </div>
-          )}
+          </div>
 
           {/* Recommendations Section */}
-          {recommendations && (
-            <div className="collapsible-section">
-              <button 
-                className="section-header"
-                onClick={() => toggleSection('recommendations')}
-              >
-                <span className="section-title">
-                  🎒 Recommended Items to Bring
+          <div className="collapsible-section">
+            <button 
+              className="section-header"
+              onClick={() => toggleSection('recommendations')}
+              disabled={loading}
+            >
+              <span className="section-title">
+                🎒 Recommended Items to Bring
+                {!loading && recommendations && (
                   <span className="item-count">
                     ({Object.values(checkedItems).filter(Boolean).length}/{recommendations.recommendations.length} packed)
                   </span>
-                </span>
-                <span className={`chevron ${sectionsOpen.recommendations ? 'open' : ''}`}>
-                  ▼
-                </span>
-              </button>
-              <div className={`section-content ${sectionsOpen.recommendations ? 'open' : ''}`}>
+                )}
+                {loading && (
+                  <span className="item-count">
+                    (Analyzing your needs...)
+                  </span>
+                )}
+              </span>
+              <span className={`chevron ${sectionsOpen.recommendations ? 'open' : ''}`}>
+                ▼
+              </span>
+            </button>
+            <div className={`section-content ${sectionsOpen.recommendations ? 'open' : ''}`}>
+              {loading ? (
+                <div className="loading-content">
+                  <div className="recommendations-content loading">
+                    <div className="loading-placeholder text-block">
+                      <div className="shimmer"></div>
+                    </div>
+                    <div className="recommendations-grid">
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="recommendation-item loading">
+                          <div className="loading-placeholder item-header">
+                            <div className="shimmer"></div>
+                          </div>
+                          <div className="loading-placeholder item-reason">
+                            <div className="shimmer"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : recommendations ? (
                 <div className="recommendations-content">
                   <p className="recommendations-analysis">
                     {recommendations.analysis}
@@ -465,18 +686,19 @@ function App() {
                     </p>
                   </div>
                 </div>
-              </div>
+              ) : null}
             </div>
-          )}
+          </div>
 
           {/* Chat Assistant Section */}
           <div className="collapsible-section">
             <button 
               className="section-header"
               onClick={() => toggleSection('chat')}
+              disabled={loading}
             >
               <span className="section-title">
-                💬 Ask the Assistant
+                💬 Ask TheSwissHiker Assistant
                 <span className="chat-subtitle">
                   Get personalized advice about clothing and preparations
                 </span>
@@ -490,12 +712,12 @@ function App() {
                 <div className="chat-messages">
                   {chatMessages.length === 0 && (
                     <div className="chat-welcome">
-                      <p>👋 Hi! I'm your SafeLand assistant. Ask me anything about:</p>
+                      <p>👋 Hi! I'm your TheSwissHiker assistant. Ask me anything about:</p>
                       <ul>
                         <li>What clothing to wear for the current weather</li>
                         <li>Safety precautions for the risk levels</li>
                         <li>What gear to bring for specific activities</li>
-                        <li>Travel tips for the conditions</li>
+                        <li>Hiking tips for the conditions</li>
                       </ul>
                     </div>
                   )}
@@ -504,7 +726,7 @@ function App() {
                       <div className="message-content">
                         <div className="message-header">
                           <span className="message-sender">
-                            {message.type === 'user' ? '👤 You' : '🤖 SafeLand Assistant'}
+                            {message.type === 'user' ? '👤 You' : '🤖 TheSwissHiker Assistant'}
                           </span>
                           <span className="message-time">
                             {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -520,7 +742,7 @@ function App() {
                     <div className="chat-message assistant">
                       <div className="message-content">
                         <div className="message-header">
-                          <span className="message-sender">🤖 SafeLand Assistant</span>
+                          <span className="message-sender">🤖 TheSwissHiker Assistant</span>
                         </div>
                         <div className="message-text typing">
                           <span className="typing-indicator">

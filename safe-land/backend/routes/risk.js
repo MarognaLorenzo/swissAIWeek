@@ -14,7 +14,7 @@ router.get('/summarize', getRiskSummary);
 
 router.get('/weather', getWeatherForecast);
 
-router.get('/recommendations', getComprehensiveRecommendations);
+router.post('/recommendations', getComprehensiveRecommendations);
 
 router.post('/chat', getChatResponse);
 

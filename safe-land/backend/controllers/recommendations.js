@@ -20,6 +20,7 @@ const client = new OpenAI({
 export const getComprehensiveRecommendations = async (req, res) => {
   try {
     const { location, floodRisk, landslideRisk } = req.query;
+    const { userProfile } = req.body;
 
     if (!location) {
       return res.status(400).json({
@@ -67,6 +68,20 @@ export const getComprehensiveRecommendations = async (req, res) => {
       alerts: weatherData.alerts?.alert || []
     };
 
+    // Create user profile context
+    let userContext = "";
+    if (userProfile) {
+      const profileParts = [];
+      if (userProfile.age) profileParts.push(`${userProfile.age} years old`);
+      if (userProfile.gender && userProfile.gender !== '') profileParts.push(`${userProfile.gender}`);
+      if (userProfile.weight) profileParts.push(`${userProfile.weight}kg`);
+      profileParts.push(`${userProfile.experience} hiking experience`);
+      profileParts.push(`${userProfile.fitness} fitness level`);
+      profileParts.push(`planning a ${userProfile.hikeDifficulty} difficulty hike`);
+      
+      userContext = `Hiker Profile: ${profileParts.join(', ')}.`;
+    }
+
     const recommendationPrompt = `Based on the following conditions, provide comprehensive recommendations for items to bring when visiting this location:
 
 Location: ${contextData.location}
@@ -77,17 +92,18 @@ UV Index: ${contextData.weather.uvIndex}, Time: ${contextData.weather.isNight ? 
 ${contextData.forecast ? `Today's forecast: ${contextData.forecast.minTemp}°C to ${contextData.forecast.maxTemp}°C, ${contextData.forecast.condition}, ${contextData.forecast.chanceOfRain}% chance of rain` : ''}
 Flood Risk: ${contextData.risks.flood}/5.0, Landslide Risk: ${contextData.risks.landslide}/5.0
 ${contextData.alerts.length > 0 ? `Weather Alerts: ${contextData.alerts.map(a => a.headline).join(', ')}` : 'No active alerts'}
+${userContext ? `\n${userContext}` : ''}
 
 Please respond with ONLY a JSON object in this exact format:
 {
-  "analysis": "Brief analysis of conditions (2-3 sentences)",
+  "analysis": "Brief analysis of conditions${userContext ? ' tailored to the hiker\'s profile' : ''} (2-3 sentences)",
   "recommendations": [
-    {"item": "item name", "reason": "why this item is needed", "priority": "high|medium|low"},
+    {"item": "item name", "reason": "why this item is needed${userContext ? ' for this hiker' : ''}", "priority": "high|medium|low"},
     {"item": "another item", "reason": "explanation", "priority": "medium"}
   ]
 }
 
-Consider items like: torch/flashlight, waterproof jacket, umbrella, warm clothing, sunscreen, hat/cap, sturdy boots, first aid kit, emergency whistle, reflective vest, portable charger, water bottle, snacks, etc. Base priority on safety needs and weather severity.`;
+${userContext ? 'Tailor recommendations based on experience level, fitness, and hike difficulty. ' : ''}Consider items like: torch/flashlight, waterproof jacket, umbrella, warm clothing, sunscreen, hat/cap, sturdy boots, first aid kit, emergency whistle, reflective vest, portable charger, water bottle, snacks${userContext && userProfile.experience === 'beginner' ? ', hiking poles, extra layers' : ''}${userContext && userProfile.hikeDifficulty === 'very-difficult' ? ', rope, helmet, GPS device' : ''}. Base priority on safety needs${userContext ? ', hiker experience,' : ''} and weather severity.`;
 
     const completion = await client.chat.completions.create({
       model: "swiss-ai/Apertus-70B",
