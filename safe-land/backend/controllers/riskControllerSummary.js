@@ -27,8 +27,6 @@ export const getRiskSummary = async (req, res) => {
     console.log("fr: " + fr)
     console.log("lr: " + lr)
 
-    console.log("API KEY: " + process.env.SWISS_AI_PLATFORM_API_KEY)
-
     // Generate AI description using Swiss AI Platform
     let prepare_desc = "";
     
