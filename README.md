@@ -13,3 +13,13 @@ A: *"Hello! I'm the Swiss Hiker, and I will be your mentor for helping you plann
 ## Usage
 To run this prototype, you can find all instructions in the [`safe-land`](https://github.com/MarognaLorenzo/swissAIWeeks/tree/main/safe-land) folder!
 
+## Example
+Here is the UI!
+
+<img width="960" height="883" alt="Screenshot 2025-10-01 at 19 54 26" src="https://github.com/user-attachments/assets/577843c9-744c-487b-8786-897e4d2b20bf" />
+
+<img width="1826" height="561" alt="c7f821a287c959a953dcfe36b1f748d1" src="https://github.com/user-attachments/assets/a6a3aad9-aade-4e69-b051-366d9e7d8106" />
+
+<img width="572" height="735" alt="Screenshot 2025-10-01 at 19 55 37" src="https://github.com/user-attachments/assets/346a5da9-9816-4ef6-a6dd-3798cb6aa628" />
+
+<img width="1078" height="447" alt="ec8318b5607ee7a4125a6b6fe87fa630" src="https://github.com/user-attachments/assets/071c576f-a3c5-4ac2-8eb6-ab3752fcb376" />
